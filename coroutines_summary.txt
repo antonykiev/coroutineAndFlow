@@ -1,0 +1,157 @@
+
+
+Parts of Coroutines:
+CoroutineScope
+     CoroutineContext
+         Job
+         CoroutineDispatcher
+         CoroutinesName
+         CoroutineExceptionHandler
+
+Coroutine builders:
+     launch
+     async
+     runBlocking
+
+async and launch need to be started on a coroutines scope,
+meanwhile runBlocking doesn`t need to be started from coroutines scope
+
+The launch keyword creates a coroutines and doesn`t return a value. Instead async - it returns a Job object that
+represents the coroutine.
+
+The async builder is similar to launch, but it returns a value: a Deferred object
+Used to get the result from coroutine execution.
+
+The runBlocking builder starts a new coroutine and blocks the current thread until the task has been executed.
+
+========================================================================================================================
+         Coroutine Scope
+========================================================================================================================
+
+
+Coroutines scope is the scope with witch the coroutines will run.
+It defines the lifecycle of the coroutines created from it, from its start to its end.
+If you cancel the scope. it will cancel all the coroutines it created.
+
+Coroutines follow the principle structured concurrency.
+
+MainScope is the scope for the main thread, which uses Dispatcher.Main
+
+lifecycleScope
+
+Lifecyclescope is coroutine scope that tied Lifecycle object and automatically cancelled
+when lifecycle is destroyed.
+A lifecycleScope uses Dispatchers.Main. immediate for its dispatcher and a SupervisorJob for its job,
+such as viewModelScope.
+
+Aside from launch, lifecycleScope has additional coroutine builders, depending on the life cycle’s state:
+     launchWhenCreated
+     launchWhenStarted
+     launchWhenResumed
+
+viewModelScope
+
+This scope and all running jobs are automatically canceled when ViewModel
+is cleared (that is, when onCleared is invoked).
+A viewModelScope uses Dispatchers.Main.immediate for its dispatcher and uses a SupervisorJob for the job.
+
+coroutineScope{} and supervisorScope{}
+
+The coroutineScope{} suspending builder allows you to create a CoroutineScope with the coroutine context
+from its outer scope.
+When a child coroutine fails, it will cancel the parent coroutine and the sibling coroutines.
+If you do not want this to happen, you can use supervisorScope{} instead of coroutineScope{}.
+The supervisorScope{} builder is similar to the coroutineScope{} builder but the coroutine’s Scope has a SupervisorJob.
+This allows the children of supervisorScope to fail independently of each other.
+
+GlobalScope
+
+GlobalScope is a special CoroutineScope that is not tied to an object or a job.
+It should only be used in cases when you must run a task or tasks that will always be active
+while the application is alive.
+
+========================================================================================================================
+        Coroutine dispatchers
+========================================================================================================================
+
+Coroutines have a context, which includes the coroutine dispatcher.
+Dispatchers specify what thread the coroutine will use to perform the task.
+
+The following dispatchers can be used:
+
+     Dispatchers.Main: A special version of Dispatchers.Main, called Dispatchers.
+     Main.immediate, is used to immediately execute the coroutine in the main thread.
+     The viewModelScope and lifecycleScope coroutine scopes use Dispatchers. Main.immediate by default.
+
+     Dispatchers.IO: This is designed for networking operations, and for reading from
+     or writing to files or databases.
+     The limit of Dispatchers.IO is 64 (or the number of cores if there are more)
+
+     Dispatchers.Default: This is used for CPU-intensive work, such as complicated computations or processing text,
+     images, or videos. If you don’t set a dispatcher, Dispatchers. Default will be chosen by default.
+     It has a pool of threads with a size equal to the number of cores in the machine
+     your code is running on (but not less than two).
+
+     Dispatchers.Unconfined: This is a special dispatcher that is not confined to any specific threads.
+     It executes the coroutine in the current thread and resumes it in whatever thread that is used
+     by the suspending function.
+
+========================================================================================================================
+            Coroutine contexts
+========================================================================================================================
+
+Each coroutine runs in a coroutine context.
+A coroutine scope has a default coroutine context; if it’s empty, it will have an EmptyCoroutineContext.
+The following are some of the CoroutineContext elements you can use:
+      CoroutineDispatcher
+      Job
+      CoroutineName
+      CoroutineExceptionHandler
+
+========================================================================================================================
+             Coroutine jobs
+========================================================================================================================
+
+A job is a ContextCoroutine element that you can use for the coroutine context.
+You can use jobs to manage the coroutine’s tasks and its life cycle.
+Jobs can be canceled or joined together.
+
+      Coroutine job states
+
+A job has the following states:
+      New
+      Active
+      Completing
+      Completed
+      Canceling
+      Canceled
+
+When you start a coroutine, a job is created in the New state.
+It then becomes Active when the job automatically starts or when you call the start() or join() function.
+The job is in the Active state while the job is running.
+
+========================================================================================================================
+            Cancelations and Exceptions
+========================================================================================================================
+
+If you use launch { ... } you can use try { } catch { }
+
+If your coroutine was built using the async coroutine builder,
+the exception will be thrown when you call the await function on the Deferred object.
+
+When a coroutine encounters an exception, it will cancel the job and pass on the exception to its parent.
+This parent coroutine will be canceled, as well as its children.
+Exceptions in the child coroutines will not affect the parent and its sibling coroutines if you use
+SupervisorJob as follows:
+     Creating the coroutine scope with the suspending supervisorScope{} builder
+     Using SupervisorJob for your coroutine scope: CoroutineScope(SupervisorJob())
+
+If the exception of your coroutine is a subclass of CancellationException,
+for example, TimeoutCancellationException or a custom one you pass to the cancel function,
+the exception will not be transmitted to the parent.
+
+When handling coroutine exceptions, you can also use a single place to handle these exceptions
+with CoroutineExceptionHandler. CoroutineExceptionHandler is a coroutine context element that you can add
+to your coroutine to handle uncaught exceptions.
+
+
